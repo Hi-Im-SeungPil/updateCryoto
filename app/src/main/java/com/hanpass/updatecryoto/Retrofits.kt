@@ -9,8 +9,9 @@ import java.util.concurrent.TimeUnit
 object Retrofits {
     const val UPBIT_BASE_URL = "https://api.upbit.com/"
     const val BITHUMB_BASE_URL = "https://api.bithumb.com/"
-    const val GC_BASE_URL = "https://api.upbit.com/"
+    const val GC_BASE_URL = "https://api.coingecko.com/"
 
+//    /
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -40,11 +41,12 @@ object Retrofits {
             .create(BithumbService::class.java)
     }
 
-    val gcInstance: Retrofit by lazy {
+    val gcInstance: GcService by lazy {
         Retrofit.Builder()
             .baseUrl(GC_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+            .create(GcService::class.java)
     }
 }
