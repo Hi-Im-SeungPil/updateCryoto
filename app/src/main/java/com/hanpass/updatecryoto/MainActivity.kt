@@ -14,8 +14,8 @@ import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var binding: ActivityMainBinding
-    val gson = Gson()
+    private lateinit var binding: ActivityMainBinding
+    private val gson = Gson()
 
     private lateinit var gcCoinMap: Map<String, String>
     private lateinit var exchangeCoinList: List<String>
@@ -32,10 +32,13 @@ class MainActivity : AppCompatActivity() {
         binding.btnCoinCapUpdate.setOnClickListener {
             gcCoinMap = loadNameToIdMap()
             getMarketList()
+            coinCapUpdate()
         }
 
         binding.btnCoinInfoUpdate.setOnClickListener {
+            gcCoinMap = loadNameToIdMap()
             getMarketList()
+            coinInfoUpdate()
         }
 
         binding.btnCoinListUpdate.setOnClickListener {
@@ -61,8 +64,6 @@ class MainActivity : AppCompatActivity() {
                         }).toSet().toList()
 
                     Log.e("list", exchangeCoinList.toString())
-
-
                 }
             }
         }
@@ -98,5 +99,28 @@ class MainActivity : AppCompatActivity() {
         val coinList: List<CgCoinListModel> = gson.fromJson(jsonString, type)
 
         return coinList.associate { it.name to it.id }
+    }
+
+    private fun coinCapUpdate() {
+        val idList = exchangeCoinList.mapNotNull { name ->
+            gcCoinMap[name]
+        }
+
+        val chunkedIds = idList.chunked(200)
+
+        for (chunk in chunkedIds) {
+            val idsParam = chunk.joinToString(",")
+            val response = Retrofits.gcInstance.getMarketData(
+                vsCurrency = "usd",
+                ids = idsParam,
+                sparkline = false
+            )
+
+            allResults.addAll(response)
+        }
+    }
+
+    private fun coinInfoUpdate() {
+
     }
 }

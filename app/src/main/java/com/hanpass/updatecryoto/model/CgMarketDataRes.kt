@@ -77,4 +77,12 @@ data class CgMarketDataRes(
 
     @SerializedName("total_volume")
     val totalVolume: Long
+) {
+    fun parseNeedData() {
+
+    }
+}
+
+data class NeedMarketData(
+    val
 )
