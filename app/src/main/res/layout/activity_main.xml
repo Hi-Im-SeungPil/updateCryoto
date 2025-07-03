@@ -25,6 +25,16 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
+        android:id="@+id/btn_coin_info_update_except"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="최신 코인정보"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toRightOf="@+id/btn_coin_info_update"
+        android:layout_marginBottom="100dp"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
         android:id="@+id/btn_coin_list_update"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

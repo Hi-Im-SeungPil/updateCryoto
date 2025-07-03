@@ -17,13 +17,12 @@ import kotlinx.coroutines.launch
 import org.jeonfeel.moeuibit2.databinding.ActivityMainBinding
 import java.io.File
 
-//genesis_date
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val gson = Gson()
 
-    private lateinit var gcCoinMap: Map<String, String>
+    private lateinit var cgCoinMap: Map<String, String>
     private lateinit var exchangeCoinList: List<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +37,7 @@ class MainActivity : AppCompatActivity() {
     private fun initListener() {
         binding.btnCoinCapUpdate.setOnClickListener {
             lifecycleScope.launch {
-                gcCoinMap = loadNameToIdMap()
+                cgCoinMap = loadNameToIdMap()
                 getMarketList()
                 coinCapUpdate()
             }
@@ -46,7 +45,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnCoinInfoUpdate.setOnClickListener {
             lifecycleScope.launch {
-                gcCoinMap = loadNameToIdMap()
+                cgCoinMap = loadNameToIdMap()
                 getMarketList()
                 coinInfoUpdate()
             }
@@ -57,13 +56,21 @@ class MainActivity : AppCompatActivity() {
                 getGCMarketList()
             }
         }
+
+        binding.btnCoinInfoUpdateExcept.setOnClickListener {
+            lifecycleScope.launch {
+                cgCoinMap = loadNameToIdMap()
+                getMarketList()
+                coinInfoUpdateExcept()
+            }
+        }
     }
 
     private suspend fun getMarketList() {
         val upbitServiceRes = Retrofits.upbitInstance.getMarketCodeList()
         val bithumbServiceRes = Retrofits.bithumbInstance.fetchBitThumbMarketCodeList()
 
-        gcCoinMap = loadNameToIdMap()
+        cgCoinMap = loadNameToIdMap()
 
         if (upbitServiceRes.isSuccessful && bithumbServiceRes.isSuccessful) {
             val upbitMarketCodeList = upbitServiceRes.body()
@@ -114,10 +121,12 @@ class MainActivity : AppCompatActivity() {
     private suspend fun coinCapUpdate() {
         val resultList = mutableListOf<NeedMarketData>()
         val idList = exchangeCoinList.mapNotNull { name ->
-            gcCoinMap[name]
+            cgCoinMap[name]
         }
 
-        val chunkedIds = idList.chunked(200)
+        Log.e("idList", idList.toString())
+
+        val chunkedIds = idList.chunked(100)
 
         for (chunk in chunkedIds) {
             val idsParam = chunk.joinToString(",")
@@ -129,8 +138,19 @@ class MainActivity : AppCompatActivity() {
             resultList.addAll(list)
         }
 
-        val updates =
-            resultList.associateBy { coin -> "/coinInfoData/${coin.symbol.uppercase()}" }
+        val updates: Map<String, Any> = resultList.flatMap { coin ->
+            val basePath = "/coinInfoData/${coin.symbol.uppercase()}"
+            listOf(
+                "$basePath/circulatingSupply" to coin.circulatingSupply,
+                "$basePath/fullyDilutedValuation" to coin.fullyDilutedValuation,
+                "$basePath/image" to coin.image,
+                "$basePath/marketCap" to coin.marketCap,
+                "$basePath/marketCapRank" to coin.marketCapRank,
+                "$basePath/maxSupply" to coin.maxSupply,
+                "$basePath/totalSupply" to coin.totalSupply,
+                "$basePath/symbol" to coin.symbol,
+            )
+        }.toMap()
 
         try {
             FirebaseDatabase.getInstance().reference.updateChildren(updates)
@@ -148,7 +168,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun coinInfoUpdate() {
         val resultList = mutableListOf<NeedCoinInfoData>()
         val idList = exchangeCoinList.mapNotNull { name ->
-            gcCoinMap[name]
+            cgCoinMap[name]
         }
 
         for ((index, id) in idList.withIndex()) {
@@ -165,12 +185,22 @@ class MainActivity : AppCompatActivity() {
         }
 
         val updates =
-            resultList.associateBy { coin -> "/coinInfoData/${coin.symbol!!.uppercase()}" }
+            resultList.associateBy { coin -> "/coinInfoData/${coin.symbol!!.uppercase()}/community" }
 
         try {
             FirebaseDatabase.getInstance().reference.updateChildren(updates)
                 .addOnSuccessListener {
                     Log.d("FirebaseUpdate", "Realtime DB 업데이트 성공")
+
+                    try {
+                        // 로컬에 저장
+                        val file = File(this.filesDir, "coinInfoData.json")
+                        val jsonString = Gson().toJson(resultList)
+                        file.writeText(jsonString)
+                        Log.d("LocalSave", "로컬 파일 저장 완료: ${file.absolutePath}")
+                    } catch (e: Exception) {
+                        Log.e("LocalSave", "로컬 저장 실패", e)
+                    }
                 }
                 .addOnFailureListener { e ->
                     Log.e("FirebaseUpdate", "Realtime DB 업데이트 실패", e)
@@ -178,5 +208,72 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("FirebaseUpdate", "예외 발생", e)
         }
+    }
+
+    private suspend fun coinInfoUpdateExcept() {
+        val existingSymbols: Set<String> = try {
+            val file = File(this.filesDir, "coinInfoData.json")
+            if (file.exists()) {
+                val json = file.readText()
+                val type = object : TypeToken<List<NeedCoinInfoData>>() {}.type
+                val savedList: List<NeedCoinInfoData> = Gson().fromJson(json, type)
+                savedList.mapNotNull { it.symbol?.uppercase() }.toSet()
+            } else emptySet()
+        } catch (e: Exception) {
+            Log.e("LocalLoad", "기존 파일 로딩 실패", e)
+            emptySet()
+        }
+
+        // 2. 업데이트할 대상만 필터링 (기존 symbol에 없는 것만)
+        val resultList = mutableListOf<NeedCoinInfoData>()
+        val idList = exchangeCoinList.mapNotNull { name ->
+            val symbol = name.uppercase()
+            val id = cgCoinMap[name]
+            if (id != null && symbol !in existingSymbols) {
+                symbol to id
+            } else null
+        }
+
+        for ((index, pair) in idList.withIndex()) {
+            val (symbol, id) = pair
+
+            val response = Retrofits.gcInstance.getCoinInfoData(id = id).body()?.parseNeedData()
+            if (response != null) {
+                resultList.add(response)
+            }
+
+            binding.tvStatus.text = "${index + 1} / ${idList.size}"
+            delay(2010)  // CoinGecko rate limit
+        }
+
+        // 3. 새로 추가된 코인만 업데이트
+        val updates =
+            resultList.associateBy { coin -> "/coinInfoData/${coin.symbol!!.uppercase()}/community" }
+
+        // 4. Firebase에 쓰고 로컬에 병합 저장
+        FirebaseDatabase.getInstance().reference.updateChildren(updates)
+            .addOnSuccessListener {
+                Log.d("FirebaseUpdate", "새 코인만 업데이트 완료")
+
+                try {
+                    val file = File(this.filesDir, "coinInfoData.json")
+                    val oldList: MutableList<NeedCoinInfoData> = if (file.exists()) {
+                        val oldJson = file.readText()
+                        val type = object : TypeToken<List<NeedCoinInfoData>>() {}.type
+                        Gson().fromJson(oldJson, type)
+                    } else mutableListOf()
+
+                    oldList.addAll(resultList)
+
+                    val jsonString = Gson().toJson(oldList)
+                    file.writeText(jsonString)
+                    Log.d("LocalSave", "로컬 파일 병합 저장 완료")
+                } catch (e: Exception) {
+                    Log.e("LocalSave", "병합 저장 실패", e)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("FirebaseUpdate", "업데이트 실패", e)
+            }
     }
 }
