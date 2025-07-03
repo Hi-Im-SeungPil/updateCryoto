@@ -1,14 +1,21 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.gms.google-services") version "4.4.0"
+}
+
+buildscript {
+    dependencies {
+        classpath("com.google.gms:google-services:4.4.0") // ✅ 이거 추가
+    }
 }
 
 android {
-    namespace = "com.hanpass.updatecryoto"
+    namespace = "org.jeonfeel.moeuibit2"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.hanpass.updatecryoto"
+        applicationId = "org.jeonfeel.moeuibit2"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -64,4 +71,9 @@ dependencies {
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // ✅ Firebase Realtime Database
+    implementation("com.google.firebase:firebase-database-ktx:20.3.0") // 최신 버전 사용
+
+
 }
