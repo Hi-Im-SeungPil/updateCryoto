@@ -40,7 +40,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnCoinCapUpdate.setOnClickListener {
             lifecycleScope.launch {
                 val idPair = loadNameToIdMap()
-                cgEngNameCoinMap = idPair.first
+                cgEngNameCoinMap = idPair.first.toMutableMap()
+                add()
                 cgSymbolCoinMap = idPair.second
                 getMarketList()
                 coinCapUpdate()
@@ -50,7 +51,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnCoinInfoUpdate.setOnClickListener {
             lifecycleScope.launch {
                 val idPair = loadNameToIdMap()
-                cgEngNameCoinMap = idPair.first
+                cgEngNameCoinMap = idPair.first.toMutableMap()
+                add()
                 cgSymbolCoinMap = idPair.second
                 getMarketList()
                 coinInfoUpdate()
@@ -66,7 +68,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnCoinInfoUpdateExcept.setOnClickListener {
             lifecycleScope.launch {
                 val idPair = loadNameToIdMap()
-                cgEngNameCoinMap = idPair.first
+                cgEngNameCoinMap = idPair.first.toMutableMap()
+                add()
                 cgSymbolCoinMap = idPair.second
                 getMarketList()
 //                coinInfoUpdateExcept()
@@ -328,6 +331,9 @@ class MainActivity : AppCompatActivity() {
         cgEngNameCoinMap["AltLayer"] = "altlayer"
         cgEngNameCoinMap["Polyswarm"] = "polyswarm"
         cgEngNameCoinMap["REI"] = "rei-network"
-        cgEngNameCoinMap["Ark"] = "game2"
+        cgEngNameCoinMap["ARK"] = "ark"
+        cgEngNameCoinMap["FLock.io"] = "flock-2"
+        cgEngNameCoinMap["MAGIC"] = "magic-token"
+        cgEngNameCoinMap["Cyber"] = "cyberconnect"
     }
 }
