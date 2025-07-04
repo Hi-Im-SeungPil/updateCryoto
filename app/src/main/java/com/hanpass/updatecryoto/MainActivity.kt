@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val gson = Gson()
 
-    private lateinit var cgEngNameCoinMap: Map<String, String>
+    private lateinit var cgEngNameCoinMap: MutableMap<String, String>
     private lateinit var cgSymbolCoinMap: Map<String, String>
     private lateinit var exchangeCoinList: List<String>
     private var exchangeSymbolCoinList: MutableList<String> = mutableListOf()
@@ -133,8 +133,10 @@ class MainActivity : AppCompatActivity() {
         val type = object : TypeToken<List<CgCoinListModel>>() {}.type
         val coinList: List<CgCoinListModel> = gson.fromJson(jsonString, type)
 
+        val nameMap = coinList.associate { it.name to it.id }
+
         return Pair(
-            coinList.associate { it.name to it.id },
+            nameMap,
             coinList.associate { it.symbol to it.id })
     }
 
@@ -234,31 +236,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun getIdList(): List<String> {
         val nameIdList = exchangeCoinList.mapNotNull { name ->
-            if(mappingID(name).isNotEmpty()) {
-
-            } else {
-                cgEngNameCoinMap[name]
-            }
+            cgEngNameCoinMap[name]
         }
 
         val symbolIdList = exchangeSymbolCoinList.mapNotNull { symbol ->
-            when (symbol) {
-                "USDT" -> {
-                    "tether"
-                }
-
-                "USDC" -> {
-                    "usd-coin"
-                }
-
-                "BAT" -> {
-                    "basic-attention-token"
-                }
-
-                else -> {
-                    cgSymbolCoinMap[symbol.lowercase()]
-                }
-            }
+            cgSymbolCoinMap[symbol.lowercase()]
         }
 
         return (nameIdList + symbolIdList).toSet().toList()
@@ -331,5 +313,21 @@ class MainActivity : AppCompatActivity() {
                 ""
             }
         }
+    }
+
+    fun add() {
+        cgEngNameCoinMap["Tokamak Network"] = "tokamak-network"
+        cgEngNameCoinMap["Basic Attention Token"] = "basic-attention-token"
+        cgEngNameCoinMap["USD Coin"] = "usd-coin"
+        cgEngNameCoinMap["Tether"] = "tether"
+        cgEngNameCoinMap["Pepe"] = "pepe"
+        cgEngNameCoinMap["FirmaChain"] = "firmachain"
+        cgEngNameCoinMap["Sonic SVM"] = "sonic-svm"
+        cgEngNameCoinMap["Polygon Ecosystem Token"] = "matic-network"
+        cgEngNameCoinMap["IQ.wiki"] = "everipedia"
+        cgEngNameCoinMap["AltLayer"] = "altlayer"
+        cgEngNameCoinMap["Polyswarm"] = "polyswarm"
+        cgEngNameCoinMap["REI"] = "rei-network"
+        cgEngNameCoinMap["Ark"] = "game2"
     }
 }
